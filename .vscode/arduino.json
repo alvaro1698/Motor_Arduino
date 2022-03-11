@@ -1,4 +1,5 @@
 {
     "board": "arduino:sam:arduino_due_x_dbg",
-    "sketch": "motor.ino"
+    "sketch": "Motor_Arduino.ino",
+    "port": "/dev/tty.usbmodem14201"
 }

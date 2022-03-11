@@ -6,9 +6,12 @@ uint32_t d1;
 uint32_t d5;
 int pinPWH1 = 42; //IN1A
 int pinPWH5 = 44; //IN2A
-int v = -12;
+int pinIntA = 6; 
+int pinIntB = 7;
+int v = -1;
 int CLOCK_WISE=0;
 int OTHER_WISE=0;
+
 
 
 void SetPin(uint8_t pin)
@@ -20,7 +23,7 @@ void SetPin(uint8_t pin)
 
 }
 
-void setDirection(int v){
+void SetDirection(int v){
 
   if (v>0 && v<=12){
     CLOCK_WISE=1;
@@ -45,10 +48,62 @@ void DutyCycle(int v){
     }
 }
 
+void Encoder(){
+  pinMode(pinIntA, INPUT);
+  pinMode(pinIntB, INPUT);
+
+  attachInterrupt(digitalPinToInterrupt(pinIntA), Lecture, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(pinIntB), Lecture, CHANGE);
+}
+
+void Lecture(){
+
+  int currentState;
+  int prevState=currentState;
+  int cuenta = 0;
+  
+  if (digitalRead(pinIntA) == 1 && digitalRead(pinIntB) == 1){
+    currentState=1;
+  }
+  else if(digitalRead(pinIntA) == 0 && digitalRead(pinIntB) == 1){
+    currentState=2;
+  }
+  else if(digitalRead(pinIntA) == 0 && digitalRead(pinIntB) == 0){
+    currentState=3;
+  }
+  else if(digitalRead(pinIntA) == 1 && digitalRead(pinIntB) == 0){
+    currentState=4;
+  }
+
+
+
+  if(currentState == 1 && prevState == 4){
+    cuenta--;
+  }else if(currentState == 2 && prevState == 1){
+    cuenta--;
+  }else if(currentState == 3 && prevState == 2){
+    cuenta--;
+  }else if(currentState == 4 && prevState == 3){
+    cuenta--;
+  }
+
+
+  if(currentState == 1 && prevState == 2){
+    cuenta++;
+  }else  if(currentState == 2 && prevState == 3){
+    cuenta++;
+  }else if(currentState == 3 && prevState == 4){
+    cuenta++;
+  }else if(currentState == 4 && prevState == 1){
+    cuenta++;
+  }
+
+}
+
 void setup(){
   SetPin(pinPWH1);// PWMH1
   SetPin(pinPWH5); // PWMH5
-  setDirection(v);
+  SetDirection(v);
   DutyCycle(v);
   
   pmc_enable_periph_clk(PWM_INTERFACE_ID);
