@@ -21,6 +21,7 @@
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/system/CMSIS/Device/ATMEL/",
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/cores/arduino",
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/hardware/sam/1.6.12/variants/arduino_due_x",
+                "/Users/alvaromontesano/Documents/Arduino/libraries/DueTimer",
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3",
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/arm-none-eabi",
                 "/Users/alvaromontesano/Library/Arduino15/packages/arduino/tools/arm-none-eabi-gcc/4.8.3-2014q1/arm-none-eabi/include/c++/4.8.3/backward",
