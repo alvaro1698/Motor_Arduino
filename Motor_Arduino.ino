@@ -6,7 +6,7 @@ uint32_t p = 2100;
 uint32_t d1;
 uint32_t d5;
 
-float v = -6.5; //Tensión inicial
+float v = 1; //Tensión inicial
 
 int pinPWH1 = 42; //IN1A
 int pinPWH5 = 44; //IN2A
@@ -23,58 +23,10 @@ int pulse_muestras[1201];
 int pos = 0;
 int timer = 0;
 
+int imprimir = 0; //flag imprimir
+
 //prueba
 int pr = 1;
-
-
-void setup(){
-  SetPin(pinPWH1);// PWMH1
-  SetPin(pinPWH5); // PWMH5
-  SetPin(pinEn); // Enable
-  Encoder();
-  digitalWrite(pinEn, HIGH);
-  Serial.begin(115200);
-  
-  SetPin(pr);
-  Timer3.attachInterrupt(Interpin); //Llamada de timer cada 1 ms
-  Timer3.start(1000); 
-
-  pmc_enable_periph_clk(PWM_INTERFACE_ID);
-  PWMC_ConfigureClocks(clock_a, 0, MASTER_CLOCK); // clock_b = 0
-
- //Channel1
-
-  PWMC_ConfigureChannelExt(PWM,
-                           1, // Channel: 1          
-                           PWM_CMR_CPRE_CLKA, // Prescaler: use CLOCK_A
-                           0, // Aligment: period is left aligned
-                           0, // Polarity: output waveform starts at a low level
-                           0, // Counter event: occurs at the end of the period
-                           PWM_CMR_DTE, // Dead time generator is enabled
-                           0, // Dead time PWMH output is not inverted    
-                           0);  // Dead time PWML output is not inverted
-  PWMC_SetPeriod(PWM, 1, p); // Channel: 1, Period: 1/(2100/42 Mhz) = ~20 kHz
-  PWMC_SetDutyCycle(PWM, 1, d1); // Channel: 1, Duty cycle: 50 %
-  //PWMC_SetDeadTime(PWM, 1, 42, 42); // Channel: 1, Rising and falling edge dead time: 42/42 Mhz = 1 us
-  PWMC_EnableChannel(PWM, 1); // Channel: 1
-
-
-  //Channel5
-
-  PWMC_ConfigureChannelExt(PWM,
-                           5, // Channel: 5          
-                           PWM_CMR_CPRE_CLKA, // Prescaler: use CLOCK_A
-                           0, // Aligment: period is left aligned
-                           0, // Polarity: output waveform starts at a low level
-                           0, // Counter event: occurs at the end of the period
-                           PWM_CMR_DTE, // Dead time generator is enabled
-                           0, // Dead time PWMH output is not inverted    
-                           0);  // Dead time PWML output is not inverted
-  PWMC_SetPeriod(PWM, 5, p); // Channel: 5, Period: 1/(2100/42 Mhz) = ~20 kHz
-  PWMC_SetDutyCycle(PWM, 5, d5); // Channel: 5, Duty cycle: d5
-  //PWMC_SetDeadTime(PWM, 5, 42, 42); // Channel: 5, Rising and falling edge dead time: 42/42 Mhz = 1 us
-  PWMC_EnableChannel(PWM, 5); // Channel: 5
-}
 
 void SetPin(uint8_t pin)
 {
@@ -89,9 +41,9 @@ void SetVoltaje(float v){
   float vin = v;
   
   if (vin >= 12){
-    v = 12;
+    vin = 12;
   }else if (vin <= -12){
-    v=-12;
+    vin=-12;
   }
 
   if (vin>0 && vin<=12){ //SetDirection
@@ -111,6 +63,9 @@ void SetVoltaje(float v){
       d1 = 0;
       d5 = (p*vi)/12;
     }
+
+    PWMC_SetDutyCycle(PWM, 1, d1); // Channel: 1, Duty cycle: 50 %
+    PWMC_SetDutyCycle(PWM, 5, d5); // Channel: 5, Duty cycle: d5
   
 }
 
@@ -175,28 +130,29 @@ void Lecture(){
 
 }
 
-// void Muestras() { //Modelado
-//   pulse_muestras[pos] = cuenta;
-//   timer++;
+void Muestras() { //Modelado
+  // Interpin();
+  // SetVoltaje(6);
 
-//   if (timer<600) {
-//     SetVoltaje(v);
-//   }else if (timer >= 600 && timer <1200){
-//     SetVoltaje(0);
-//   }
+  timer++;
+  if (timer<600) {
+    SetVoltaje(v);
+    pulse_muestras[pos] = cuenta;
+  }else if (timer >= 600){
+    SetVoltaje(0);
+    pulse_muestras[pos] = cuenta;
+  }
 
-//   pos ++;
+  pos ++;
 
-//   if (timer == 1200) {
-//     SetVoltaje(0);
-//     for (int i=0; i<=1201; i++) {
-//       Serial.println(pulse_muestras[i]);
-//     }
-//     Timer3.stop();
-//     pos = 0;
-//     timer = 0;
-//   }
-// }
+  if (timer > 1201) {
+    SetVoltaje(0);
+    Timer3.stop();
+    pos = 0;
+    timer = 0;
+    imprimir = 1;
+  }
+}
 
 void Interpin() {
    if (digitalRead(pr) == 1) {
@@ -206,9 +162,61 @@ void Interpin() {
     }
 }
 
+void setup(){
+  SetPin(pinPWH1);// PWMH1
+  SetPin(pinPWH5); // PWMH5
+  SetPin(pinEn); // Enable
+  digitalWrite(pinEn, HIGH);
+  Serial.begin(115200);
+  Encoder(); //Inicialización encoder
 
+  pmc_enable_periph_clk(PWM_INTERFACE_ID);
+  PWMC_ConfigureClocks(clock_a, 0, MASTER_CLOCK); // clock_b = 0
+
+ //Channel1
+
+  PWMC_ConfigureChannelExt(PWM,
+                           1, // Channel: 1          
+                           PWM_CMR_CPRE_CLKA, // Prescaler: use CLOCK_A
+                           0, // Aligment: period is left aligned
+                           0, // Polarity: output waveform starts at a low level
+                           0, // Counter event: occurs at the end of the period
+                           PWM_CMR_DTE, // Dead time generator is enabled
+                           0, // Dead time PWMH output is not inverted    
+                           0);  // Dead time PWML output is not inverted
+  PWMC_SetPeriod(PWM, 1, p); // Channel: 1, Period: 1/(2100/42 Mhz) = ~20 kHz
+  PWMC_SetDutyCycle(PWM, 1, 0); // Channel: 1, Duty cycle: 50 %
+  //PWMC_SetDeadTime(PWM, 1, 42, 42); // Channel: 1, Rising and falling edge dead time: 42/42 Mhz = 1 us
+  PWMC_EnableChannel(PWM, 1); // Channel: 1
+
+
+  //Channel5
+
+  PWMC_ConfigureChannelExt(PWM,
+                           5, // Channel: 5          
+                           PWM_CMR_CPRE_CLKA, // Prescaler: use CLOCK_A
+                           0, // Aligment: period is left aligned
+                           0, // Polarity: output waveform starts at a low level
+                           0, // Counter event: occurs at the end of the period
+                           PWM_CMR_DTE, // Dead time generator is enabled
+                           0, // Dead time PWMH output is not inverted    
+                           0);  // Dead time PWML output is not inverted
+  PWMC_SetPeriod(PWM, 5, p); // Channel: 5, Period: 1/(2100/42 Mhz) = ~20 kHz
+  PWMC_SetDutyCycle(PWM, 5, 0); // Channel: 5, Duty cycle: d5
+  //PWMC_SetDeadTime(PWM, 5, 42, 42); // Channel: 5, Rising and falling edge dead time: 42/42 Mhz = 1 us
+  PWMC_EnableChannel(PWM, 5); // Channel: 5
+
+   // pinMode(pr, OUTPUT);
+  Timer3.attachInterrupt(Muestras); //Configuración del Timer3 llamando a la función 
+  Timer3.start(1000); //Establecimiento del Timer3 a 1 s
+
+}
 
 void loop(){
-  //Serial.println(cuenta);
-  //delay(100);
+ if(imprimir == 1) {
+   for (int i=0; i<=1200; i++) {
+     Serial.println(pulse_muestras[i]);
+   }
+ }
+ imprimir = 0; 
 }
