@@ -6,7 +6,7 @@ uint32_t p = 2100;
 uint32_t d1;
 uint32_t d5;
 
-float v = 1; //Tensión inicial
+float v = 11; //Tensión inicial
 
 int pinPWH1 = 42; //IN1A
 int pinPWH5 = 44; //IN2A
@@ -25,8 +25,8 @@ int timer = 0;
 
 int imprimir = 0; //flag imprimir
 
-//prueba
-int pr = 1;
+
+//int pr = 1; //prueba
 
 void SetPin(uint8_t pin)
 {
@@ -138,14 +138,14 @@ void Muestras() { //Modelado
   if (timer<600) {
     SetVoltaje(v);
     pulse_muestras[pos] = cuenta;
-  }else if (timer >= 600){
+  }else if (timer >= 600 || timer <= 1200){
     SetVoltaje(0);
     pulse_muestras[pos] = cuenta;
   }
 
   pos ++;
 
-  if (timer > 1201) {
+  if (timer >= 1201) {
     SetVoltaje(0);
     Timer3.stop();
     pos = 0;
@@ -154,13 +154,13 @@ void Muestras() { //Modelado
   }
 }
 
-void Interpin() {
-   if (digitalRead(pr) == 1) {
-      digitalWrite(pr, LOW);
-    }else if (digitalRead(pr) == 0) {
-      digitalWrite(pr, HIGH);
-    }
-}
+// void Interpin() {
+//    if (digitalRead(pr) == 1) {
+//       digitalWrite(pr, LOW);
+//     }else if (digitalRead(pr) == 0) {
+//       digitalWrite(pr, HIGH);
+//     }
+// }
 
 void setup(){
   SetPin(pinPWH1);// PWMH1
