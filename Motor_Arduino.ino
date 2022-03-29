@@ -1,4 +1,5 @@
 #include <DueTimer.h>
+#include <math.h>
 #define MASTER_CLOCK 84000000
 
 uint32_t clock_a = 42000000; // Sampling frequency in Hz
@@ -6,12 +7,16 @@ uint32_t p = 2100;
 uint32_t d1;
 uint32_t d5;
 
-float v = 11; //Tensión inicial
+const float redr = 9.66667;
+const float r1vg = 3608;
+const float r1vp = 464; 
 
-int pinPWH1 = 42; //IN1A
-int pinPWH5 = 44; //IN2A
-int pinIntA = 6; 
-int pinIntB = 7;
+float v = 1; //Tensión inicial
+
+int pinPWH1 = 42; //IN1A (reductora grande) //IN2A (reductora pequeña)
+int pinPWH5 = 44; //IN2A (reductora grande) //IN1A (reductora pequeña)
+int pinIntA = 6; //amarillo
+int pinIntB = 7; //blanco
 int pinEn = 2; 
 int CLOCK_WISE=0;
 int OTHER_WISE=0;
@@ -24,6 +29,15 @@ int pos = 0;
 int timer = 0;
 
 int imprimir = 0; //flag imprimir
+
+//Diseño
+float r = 2*M_PI;
+float y = 0;
+float kp = 35;
+float km = 1556.4;
+float e;
+float u;
+
 
 
 //int pr = 1; //prueba
@@ -130,28 +144,34 @@ void Lecture(){
 
 }
 
-void Muestras() { //Modelado
-  // Interpin();
-  // SetVoltaje(6);
+// void Muestras() { //Modelado
+//   // Interpin();
+//   // SetVoltaje(6);
 
-  timer++;
-  if (timer<600) {
-    SetVoltaje(v);
-    pulse_muestras[pos] = cuenta;
-  }else if (timer >= 600 || timer <= 1200){
-    SetVoltaje(0);
-    pulse_muestras[pos] = cuenta;
-  }
+//   timer++;
+//   if (timer<600) {
+//     SetVoltaje(v);
+//     pulse_muestras[pos] = cuenta;
+//   }else if (timer >= 600 || timer <= 1200){
+//     SetVoltaje(0);
+//     pulse_muestras[pos] = cuenta;
+//   }
 
-  pos ++;
+//   pos ++;
 
-  if (timer >= 1201) {
-    SetVoltaje(0);
-    Timer3.stop();
-    pos = 0;
-    timer = 0;
-    imprimir = 1;
-  }
+//   if (timer >= 1201) {
+//     SetVoltaje(0);
+//     Timer3.stop();
+//     pos = 0;
+//     timer = 0;
+//     imprimir = 1;
+//   }
+// }
+
+void MuestrasError() { //Modelado
+
+  SetError(kp);
+
 }
 
 // void Interpin() {
@@ -161,6 +181,13 @@ void Muestras() { //Modelado
 //       digitalWrite(pr, HIGH);
 //     }
 // }
+
+void SetError(float kp){
+  y = (cuenta*2*M_PI)/r1vp;
+  e = r-y;
+  u = kp*e;
+  SetVoltaje(u);
+}
 
 void setup(){
   SetPin(pinPWH1);// PWMH1
@@ -206,17 +233,44 @@ void setup(){
   //PWMC_SetDeadTime(PWM, 5, 42, 42); // Channel: 5, Rising and falling edge dead time: 42/42 Mhz = 1 us
   PWMC_EnableChannel(PWM, 5); // Channel: 5
 
-   // pinMode(pr, OUTPUT);
-  Timer3.attachInterrupt(Muestras); //Configuración del Timer3 llamando a la función 
-  Timer3.start(1000); //Establecimiento del Timer3 a 1 s
+  // SetError(kp);
+  
+  //Timer muestras CPR
 
+  // pinMode(pr, OUTPUT);
+  // Timer3.attachInterrupt(Muestras); //Configuración del Timer3 llamando a la función 
+  // Timer3.start(1000); //Establecimiento del Timer3 a 1 s
+
+  //Timer radianes
+
+  Timer3.attachInterrupt(MuestrasError); //Configuración del Timer3 llamando a la función 
+  Timer3.start(1000); //Establecimiento del Timer3 a 1 s
+  //SetError(kp);
 }
 
 void loop(){
- if(imprimir == 1) {
-   for (int i=0; i<=1200; i++) {
-     Serial.println(pulse_muestras[i]);
-   }
- }
- imprimir = 0; 
+
+  while(e>0){
+    Serial.println(y);
+  }
+
+
+  // Serial.print(r);
+  // Serial.print(';');
+  // Serial.print(y);
+  // Serial.print(';');
+  // Serial.print(e);
+  // Serial.print(';');
+  // Serial.println(u);
+
+
+  // Serial.println(cuenta);
+
+//  if(imprimir == 1) {
+
+//    for (int i=0; i<=1200; i++) {
+//      Serial.println(pulse_muestras[i]);
+//    }
+//  }
+//  imprimir = 0; 
 }
