@@ -2,21 +2,20 @@
 #include <math.h>
 #define MASTER_CLOCK 84000000
 
+
+//Variables y constantes
+
+
 uint32_t clock_a = 42000000; // Sampling frequency in Hz
 uint32_t p = 2100;
 uint32_t d1;
 uint32_t d5;
 
-const float redr = 9.66667;
-const float r1vg = 3608;
-const float r1vp = 464; 
-
-float v = 1; //Tensión inicial
-
-int pinPWH1 = 42; //IN1A (reductora grande) //IN2A (reductora pequeña)
-int pinPWH5 = 44; //IN2A (reductora grande) //IN1A (reductora pequeña)
-int pinIntA = 6; //amarillo
-int pinIntB = 7; //blanco
+//Movimiento por tensión
+int pinPWH1 = 42; //IN1A
+int pinPWH5 = 44; //IN2A
+int pinIntA = 6; //blanco
+int pinIntB = 7; //amarillo
 int pinEn = 2; 
 int CLOCK_WISE=0;
 int OTHER_WISE=0;
@@ -25,22 +24,35 @@ int currentState;
 int prevState;
 
 int pulse_muestras[1201];
+float muestras_angulo[1201];
 int pos = 0;
 int timer = 0;
 
 int imprimir = 0; //flag imprimir
 
-//Diseño
-float r = 2*M_PI;
+//Diseño y movimiento por angulo
+const float redr = 9.66667; //Relación reductora grande
+const float r1vg = 3608;  //Cuentas por vuelta de reductora grande
+const float r1vp = 464;  //Cuentas por vuelta de reductora pequeña
 float y = 0;
-float kp = 35;
 float km = 1556.4;
 float e;
 float u;
 
+//Valores de control
+
+float Vreal = 1; //Tensión inicial
+float v = Vreal; 
+
+float Rreal = M_PI; //Angulo de referencia
+float r = Rreal;
+
+float kp = 2.5; //Ganancia sistema
+
+int muestras = 1201;
 
 
-//int pr = 1; //prueba
+//Metodos
 
 void SetPin(uint8_t pin)
 {
@@ -144,46 +156,55 @@ void Lecture(){
 
 }
 
-// void Muestras() { //Modelado
-//   // Interpin();
-//   // SetVoltaje(6);
+void Muestras() { //Modelado
+  // Interpin();
+  // SetVoltaje(6);
 
-//   timer++;
-//   if (timer<600) {
-//     SetVoltaje(v);
-//     pulse_muestras[pos] = cuenta;
-//   }else if (timer >= 600 || timer <= 1200){
-//     SetVoltaje(0);
-//     pulse_muestras[pos] = cuenta;
-//   }
+  timer++;
+  if (timer<600) {
+    SetVoltaje(v);
+    pulse_muestras[pos] = cuenta;
+  }else if (timer >= 600 || timer <= 1200){
+    SetVoltaje(0);
+    pulse_muestras[pos] = cuenta;
+  }
 
-//   pos ++;
+  pos ++;
 
-//   if (timer >= 1201) {
-//     SetVoltaje(0);
-//     Timer3.stop();
-//     pos = 0;
-//     timer = 0;
-//     imprimir = 1;
-//   }
-// }
+  if (timer >= 1201) {
+    SetVoltaje(0);
+    Timer3.stop();
+    pos = 0;
+    timer = 0;
+    imprimir = 1;
+  }
+}
 
 void MuestrasError() { //Modelado
 
-  SetError(kp);
+  //SetError(kp);
+  timer++;
+  if (timer<600) {
+    SetError(kp);
+    muestras_angulo[pos] = y;
+  }else if (timer >= 600 || timer <= 1200){
+    SetError(0);
+    muestras_angulo[pos] = y;
+  }
 
+  pos ++;
+
+  if (timer >= 1201) {
+    SetError(0);
+    Timer3.stop();
+    pos = 0;
+    timer = 0;
+    imprimir = 1;
+  }
 }
 
-// void Interpin() {
-//    if (digitalRead(pr) == 1) {
-//       digitalWrite(pr, LOW);
-//     }else if (digitalRead(pr) == 0) {
-//       digitalWrite(pr, HIGH);
-//     }
-// }
-
 void SetError(float kp){
-  y = (cuenta*2*M_PI)/r1vp;
+  y = (cuenta*2*M_PI)/r1vp; //Dependiendo de la reductora usada, hay que usar o r1vp (reductora pequeña) o r1vg (reductora grande)
   e = r-y;
   u = kp*e;
   SetVoltaje(u);
@@ -232,45 +253,38 @@ void setup(){
   PWMC_SetDutyCycle(PWM, 5, 0); // Channel: 5, Duty cycle: d5
   //PWMC_SetDeadTime(PWM, 5, 42, 42); // Channel: 5, Rising and falling edge dead time: 42/42 Mhz = 1 us
   PWMC_EnableChannel(PWM, 5); // Channel: 5
-
-  // SetError(kp);
   
-  //Timer muestras CPR
+  //1º Control por voltaje (apartado a)
+  //Descomentar y comentar ('2º Timer muestras' y '3º Timer radianes') y  poner valor deseado de tensión en Vreal en la sección de valores de control
 
-  // pinMode(pr, OUTPUT);
+  //SetVoltaje(v);
+
+  //2º Timer muestras CPR (apartado b)
+  //Descomentar y comentar ('1º Timer radianes' y '3º Timer radianes') y poner valor deseado de tensión en Vreal en la sección de valores de control
+
   // Timer3.attachInterrupt(Muestras); //Configuración del Timer3 llamando a la función 
   // Timer3.start(1000); //Establecimiento del Timer3 a 1 s
 
-  //Timer radianes
+  //1º Timer radianes (apartado c)
+  //Descomentar y comentar ('1º Timer radianes' y '3º Timer radianes') y poner el angulo de referencia en Rreal en la sección de valores de control
 
   Timer3.attachInterrupt(MuestrasError); //Configuración del Timer3 llamando a la función 
   Timer3.start(1000); //Establecimiento del Timer3 a 1 s
-  //SetError(kp);
 }
 
 void loop(){
 
-  while(e>0){
-    Serial.println(y);
-  }
+  // while(abs(e)>0.1){
+  //   Serial.print(e);
+  //   Serial.print(';');
+  //   Serial.println(y);
+  // }
 
+ if(imprimir == 1) {
 
-  // Serial.print(r);
-  // Serial.print(';');
-  // Serial.print(y);
-  // Serial.print(';');
-  // Serial.print(e);
-  // Serial.print(';');
-  // Serial.println(u);
-
-
-  // Serial.println(cuenta);
-
-//  if(imprimir == 1) {
-
-//    for (int i=0; i<=1200; i++) {
-//      Serial.println(pulse_muestras[i]);
-//    }
-//  }
-//  imprimir = 0; 
+   for (int i=0; i<=1201; i++) {
+     Serial.println(muestras_angulo[i]); //muestras_angulo -> apartado c //pulse muestras -> apartado a y b
+   }
+ }
+ imprimir = 0; 
 }

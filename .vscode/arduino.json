@@ -1,5 +1,5 @@
 {
     "board": "arduino:sam:arduino_due_x_dbg",
     "sketch": "Motor_Arduino.ino",
-    "port": "/dev/tty.usbmodem14101"
+    "port": "/dev/tty.usbmodem14201"
 }
